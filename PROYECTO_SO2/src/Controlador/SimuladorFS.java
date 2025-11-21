@@ -6,7 +6,7 @@ package Controlador;
 import edd.Cola;
 import edd.Arraylist;
 import modelo.*;
-import planificacion_disco.*;
+import planificaciondisco.*;
 /**
  *
  * @author adria
@@ -16,7 +16,7 @@ public class SimuladorFS {
     private TablaAsignacion tablaAsignacion;
     private Directorio raiz;
     private Cola<ProcesoIO> colaProcesos;
-    private PlanificadorDisco planificador;
+    private PlanifcadorDisco planificador;
     private int cabezal;
     private ModoUsuario modoUsuario;
 
@@ -101,4 +101,92 @@ public class SimuladorFS {
                 break;
         }
     }
+    private Directorio navegarDirectorio(String ruta) {
+        // Simplificación: Si la ruta es "/root/carpeta/archivo.txt", devuelve el obj Directorio "carpeta"
+        // Asumimos que la ruta empieza con "root/"
+        String[] partes = ruta.split("/");
+        if (partes.length <= 1) return raiz; // Es raíz
+
+        Directorio actual = raiz;
+        // Iteramos hasta el penúltimo elemento (el padre del objetivo)
+        for (int i = 1; i < partes.length - 1; i++) {
+            boolean encontrado = false;
+            Arraylist<NodoFS> hijos = actual.getHijos();
+            for (int j = 0; j < hijos.size(); j++) {
+                NodoFS nodo = hijos.get(j);
+                if (nodo instanceof Directorio && nodo.getNombre().equals(partes[i])) {
+                    actual = (Directorio) nodo;
+                    encontrado = true;
+                    break;
+                }
+            }
+            if (!encontrado) return null; // Ruta no existe
+        }
+        return actual;
+    }
+
+    private void crearArchivoFisico(String nombre, Directorio padre, int tamano, String creador, String rutaCompleta) {
+        if (disco.contarBloquesLibres() < tamano) {
+            System.err.println("Error: Espacio insuficiente en disco.");
+            return;
+        }
+
+        int bloquesAsignados = 0;
+        int anteriorIndex = -1;
+        int primerBloqueIndex = -1;
+
+        // Asignación Encadenada
+        for (int i = 0; i < disco.getCantidadBloques() && bloquesAsignados < tamano; i++) {
+            if (!disco.getBloque(i).estaOcupado()) {
+                if (primerBloqueIndex == -1) primerBloqueIndex = i;
+                
+                if (anteriorIndex != -1) {
+                    disco.getBloque(anteriorIndex).setSiguienteBloque(i);
+                }
+                
+                // Marcar bloque actual
+                // Asumimos ID de archivo simple basado en hashCode del nombre para color
+                disco.getBloque(i).ocupar(nombre.hashCode(), Bloque.FIN_DE_ARCHIVO); 
+                
+                anteriorIndex = i;
+                bloquesAsignados++;
+            }
+        }
+
+        if (bloquesAsignados == tamano) {
+            Archivo nuevoArchivo = new Archivo(nombre, padre, primerBloqueIndex, tamano, creador);
+            padre.agregarHijo(nuevoArchivo);
+            tablaAsignacion.registrarArchivo(rutaCompleta, nuevoArchivo);
+        } else {
+            // Rollback si falló algo (no debería si chequeamos espacio antes)
+            System.err.println("Error crítico en asignación.");
+        }
+    }
+
+    private void eliminarArchivoFisico(String rutaCompleta, Directorio padre) {
+        Archivo archivo = tablaAsignacion.obtenerArchivo(rutaCompleta);
+        if (archivo == null) return;
+
+        // Liberar bloques en disco
+        int actual = archivo.getPrimerBloque();
+        while (actual != Bloque.FIN_DE_ARCHIVO && actual >= 0) {
+            Bloque b = disco.getBloque(actual);
+            int siguiente = b.getSiguienteBloque();
+            b.liberar();
+            actual = siguiente;
+        }
+
+        // Eliminar de estructuras lógicas
+        padre.eliminarHijo(archivo);
+        tablaAsignacion.eliminarRegistro(rutaCompleta);
+    }
+
+    // Getters/Setters
+    public Disco getDisco() { return disco; }
+    public Directorio getRaiz() { return raiz; }
+    public Cola<ProcesoIO> getColaProcesos() { return colaProcesos; }
+    public void setPlanificador(PlanifcadorDisco p) { this.planificador = p; }
+    public ModoUsuario getModoUsuario() { return modoUsuario; }
+    public void setModoUsuario(ModoUsuario m) { this.modoUsuario = m; }
+    public TablaAsignacion getTablaAsignacion() { return tablaAsignacion; }
 }
