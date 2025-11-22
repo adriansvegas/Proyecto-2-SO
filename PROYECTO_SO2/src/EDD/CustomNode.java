@@ -1,4 +1,4 @@
-package edd;
+package EDD;
 
 /**
  * Nodo simple genérico (usa <T>) para listas enlazadas.

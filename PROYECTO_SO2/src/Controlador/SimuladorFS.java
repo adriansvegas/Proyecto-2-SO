@@ -3,8 +3,8 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package Controlador;
-import edd.Cola;
-import edd.Arraylist;
+import EDD.Cola;
+import EDD.Arraylist;
 import modelo.*;
 import planificaciondisco.*;
 /**

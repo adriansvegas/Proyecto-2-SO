@@ -1,4 +1,4 @@
-package edd;
+package EDD;
 
 /**
  * Implementación de una Cola (Queue) FIFO genérica (usa <T>).

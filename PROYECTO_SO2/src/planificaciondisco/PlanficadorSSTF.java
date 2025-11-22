@@ -3,7 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package planificaciondisco;
-import edd.Cola;
+import EDD.Cola;
 import modelo.ProcesoIO;
 /**
  *

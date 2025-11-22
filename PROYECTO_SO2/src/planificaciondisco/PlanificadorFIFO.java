@@ -4,7 +4,7 @@
  */
 package planificaciondisco;
 
-import edd.Cola;
+import EDD.Cola;
 import modelo.ProcesoIO;
 /**
  *
