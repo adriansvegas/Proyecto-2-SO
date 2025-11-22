@@ -45,7 +45,7 @@ public class Hashmap<K, V> {
         this.loadFactor = DEFAULT_LOAD_FACTOR;
     }
 
-    private static class Entry<K, V> {
+    public static class Entry<K, V> {
         final K key;
         V value;
 
@@ -254,12 +254,12 @@ public class Hashmap<K, V> {
 
     // --- Iterator needed for removeIf ---
     // Using java.util.Iterator internally now
-    private synchronized Iterator<Entry<K, V>> entryIterator() {
+    public synchronized Iterator<Entry<K, V>> entryIterator() {
         return new EntryIterator();
     }
 
     // --- INICIO CORRECCIÓN: Implementar java.util.Iterator ---
-    private class EntryIterator implements Iterator<Entry<K, V>> {
+    public class EntryIterator implements Iterator<Entry<K, V>> {
     // --- FIN CORRECCIÓN ---
         private int currentBucketIndex;
         private Iterator<Entry<K, V>> currentBucketIterator;
