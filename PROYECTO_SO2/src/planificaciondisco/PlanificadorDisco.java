@@ -9,7 +9,7 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
-public interface PlanifcadorDisco {
+public interface PlanificadorDisco {
     ProcesoIO seleccionarSiguiente(Cola<ProcesoIO> cola, int cabezalActual);
     String getNombre();
 }

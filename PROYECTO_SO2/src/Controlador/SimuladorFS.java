@@ -16,7 +16,7 @@ public class SimuladorFS {
     private TablaAsignacion tablaAsignacion;
     private Directorio raiz;
     private Cola<ProcesoIO> colaProcesos;
-    private PlanifcadorDisco planificador;
+    private PlanificadorDisco planificador;
     private int cabezal;
     private ModoUsuario modoUsuario;
 
@@ -185,7 +185,7 @@ public class SimuladorFS {
     public Disco getDisco() { return disco; }
     public Directorio getRaiz() { return raiz; }
     public Cola<ProcesoIO> getColaProcesos() { return colaProcesos; }
-    public void setPlanificador(PlanifcadorDisco p) { this.planificador = p; }
+    public void setPlanificador(PlanificadorDisco p) { this.planificador = p; }
     public ModoUsuario getModoUsuario() { return modoUsuario; }
     public void setModoUsuario(ModoUsuario m) { this.modoUsuario = m; }
     public TablaAsignacion getTablaAsignacion() { return tablaAsignacion; }

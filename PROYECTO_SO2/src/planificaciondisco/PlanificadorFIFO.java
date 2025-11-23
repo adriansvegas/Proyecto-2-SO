@@ -10,7 +10,7 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
-public class PlanificadorFIFO implements PlanifcadorDisco{
+public class PlanificadorFIFO implements PlanificadorDisco{
     @Override
     public ProcesoIO seleccionarSiguiente(Cola<ProcesoIO> cola, int cabezalActual) {
         return cola.poll(); // Atiende el primero que llegó

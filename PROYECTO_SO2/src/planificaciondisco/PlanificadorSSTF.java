@@ -9,7 +9,7 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
-public class PlanificadorSSTF implements PlanifcadorDisco{
+public class PlanificadorSSTF implements PlanificadorDisco{
     @Override
     public ProcesoIO seleccionarSiguiente(Cola<ProcesoIO> cola, int cabezalActual) {
         if (cola.isEmpty()) return null;

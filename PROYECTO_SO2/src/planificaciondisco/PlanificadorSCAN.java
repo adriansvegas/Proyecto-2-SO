@@ -9,7 +9,7 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
-public class PlanificadorSCAN implements PlanifcadorDisco{
+public class PlanificadorSCAN implements PlanificadorDisco{
     private boolean subiendo = true; // Dirección del elevador
 
     @Override
