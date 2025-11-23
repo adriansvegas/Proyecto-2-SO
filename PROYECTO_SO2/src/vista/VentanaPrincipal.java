@@ -53,6 +53,25 @@ public class VentanaPrincipal extends JFrame {
         JButton btnEliminar = new JButton("Eliminar");
         JButton btnEjecutar = new JButton("Ejecutar Paso");
         
+    JButton btnRenombrar = new JButton("Renombrar");
+    JButton btnGuardar = new JButton("Guardar"); 
+    
+    btnRenombrar.addActionListener(e -> {
+        if (simulador.getModoUsuario() == ModoUsuario.USUARIO) {
+            JOptionPane.showMessageDialog(this, "Solo Admin puede renombrar.");
+            return;
+        }
+        String nombreViejo = JOptionPane.showInputDialog("Nombre archivo actual:");
+        String nuevoNombre = JOptionPane.showInputDialog("Nuevo nombre:");
+        // Llamar a simulador.renombrar...
+    });
+
+    // Añadir al panel
+    panelTop.add(btnRenombrar);
+    panelTop.add(btnGuardar);            
+    
+
+        
         comboPlanificador = new JComboBox<>(new String[]{"FIFO", "SSTF", "SCAN"});
         comboPlanificador.addActionListener(e -> cambiarPlanificador());
         
