@@ -5,6 +5,10 @@
 package Controlador;
 import EDD.Cola;
 import EDD.Arraylist;
+import EDD.Hashmap;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Iterator;
 import modelo.*;
 import planificaciondisco.*;
 /**
@@ -25,19 +29,19 @@ public class SimuladorFS {
         this.tablaAsignacion = new TablaAsignacion();
         this.raiz = new Directorio("root", null);
         this.colaProcesos = new Cola<>();
-        this.planificador = new PlanificadorFIFO(); // Default
+        this.planificador = new PlanificadorFIFO(); 
         this.cabezal = 0;
         this.modoUsuario = ModoUsuario.ADMINISTRADOR;
+        
+        // Ocupar bloque 0 para sistema
+        disco.getBloque(0).ocupar(0, Bloque.FIN_DE_ARCHIVO);
     }
 
-    // --- Gestión de Solicitudes ---
     public void agregarProceso(String usuario, ProcesoIO.Operacion op, String ruta, int tamano) {
-        // Estimamos la posición física deseada (cilindro) simplemente buscando el primer bloque libre
-        // o el bloque donde empieza el archivo (si es lectura/borrado).
-        int cilindroEstimado = 0; 
+        int cilindroEstimado = 0;
         if (op == ProcesoIO.Operacion.CREAR_ARCHIVO) {
              cilindroEstimado = disco.buscarBloqueLibre();
-             if (cilindroEstimado == -1) cilindroEstimado = 99; // Disco lleno, mandamos al final
+             if (cilindroEstimado == -1) cilindroEstimado = disco.getCantidadBloques() - 1; 
         } else {
              Archivo a = tablaAsignacion.obtenerArchivo(ruta);
              if (a != null) cilindroEstimado = a.getPrimerBloque();
@@ -54,7 +58,7 @@ public class SimuladorFS {
         ProcesoIO proc = planificador.seleccionarSiguiente(colaProcesos, cabezal);
         if (proc != null) {
             proc.setEstado(ProcesoIO.Estado.EJECUCION);
-            cabezal = proc.getCilindroPeticion(); // Mover cabezal
+            cabezal = proc.getCilindroPeticion(); 
             procesarSolicitud(proc);
             proc.setEstado(ProcesoIO.Estado.TERMINADO);
         }
@@ -66,7 +70,6 @@ public class SimuladorFS {
         String[] partes = ruta.split("/");
         String nombreEntidad = partes[partes.length - 1];
         
-        // Buscar directorio padre (simplificado: asume ruta absoluta desde root)
         Directorio padre = navegarDirectorio(ruta); 
 
         if (padre == null) {
@@ -86,29 +89,16 @@ public class SimuladorFS {
                 padre.agregarHijo(nuevoDir);
                 break;
             case ELIMINAR_DIR:
-                // Lógica recursiva simplificada: solo borra de la lista del padre
-                // En un sistema real, habría que borrar recursivamente el contenido
-                // Aquí borramos el nodo del árbol visual, pero los bloques de archivos hijos quedarían "huerfanos" 
-                // si no se implementa el borrado recursivo completo. Por brevedad, lo omitimos.
-                 // Buscar el objeto directorio hijo
-                Arraylist<NodoFS> hijos = padre.getHijos();
-                for(int i=0; i<hijos.size(); i++) {
-                    if(hijos.get(i).getNombre().equals(nombreEntidad) && hijos.get(i) instanceof Directorio) {
-                        padre.eliminarHijo(hijos.get(i));
-                        break;
-                    }
-                }
+                eliminarDirectorioRecursivo(nombreEntidad, padre, ruta);
                 break;
         }
     }
+
     private Directorio navegarDirectorio(String ruta) {
-        // Simplificación: Si la ruta es "/root/carpeta/archivo.txt", devuelve el obj Directorio "carpeta"
-        // Asumimos que la ruta empieza con "root/"
         String[] partes = ruta.split("/");
-        if (partes.length <= 1) return raiz; // Es raíz
+        if (partes.length <= 1) return raiz; 
 
         Directorio actual = raiz;
-        // Iteramos hasta el penúltimo elemento (el padre del objetivo)
         for (int i = 1; i < partes.length - 1; i++) {
             boolean encontrado = false;
             Arraylist<NodoFS> hijos = actual.getHijos();
@@ -120,14 +110,14 @@ public class SimuladorFS {
                     break;
                 }
             }
-            if (!encontrado) return null; // Ruta no existe
+            if (!encontrado) return null; 
         }
         return actual;
     }
 
     private void crearArchivoFisico(String nombre, Directorio padre, int tamano, String creador, String rutaCompleta) {
         if (disco.contarBloquesLibres() < tamano) {
-            System.err.println("Error: Espacio insuficiente en disco.");
+            System.err.println("Error: Espacio insuficiente.");
             return;
         }
 
@@ -135,7 +125,6 @@ public class SimuladorFS {
         int anteriorIndex = -1;
         int primerBloqueIndex = -1;
 
-        // Asignación Encadenada
         for (int i = 0; i < disco.getCantidadBloques() && bloquesAsignados < tamano; i++) {
             if (!disco.getBloque(i).estaOcupado()) {
                 if (primerBloqueIndex == -1) primerBloqueIndex = i;
@@ -144,10 +133,7 @@ public class SimuladorFS {
                     disco.getBloque(anteriorIndex).setSiguienteBloque(i);
                 }
                 
-                // Marcar bloque actual
-                // Asumimos ID de archivo simple basado en hashCode del nombre para color
-                disco.getBloque(i).ocupar(nombre.hashCode(), Bloque.FIN_DE_ARCHIVO); 
-                
+                disco.getBloque(i).ocupar(Math.abs(nombre.hashCode()), Bloque.FIN_DE_ARCHIVO); 
                 anteriorIndex = i;
                 bloquesAsignados++;
             }
@@ -157,9 +143,6 @@ public class SimuladorFS {
             Archivo nuevoArchivo = new Archivo(nombre, padre, primerBloqueIndex, tamano, creador);
             padre.agregarHijo(nuevoArchivo);
             tablaAsignacion.registrarArchivo(rutaCompleta, nuevoArchivo);
-        } else {
-            // Rollback si falló algo (no debería si chequeamos espacio antes)
-            System.err.println("Error crítico en asignación.");
         }
     }
 
@@ -167,7 +150,6 @@ public class SimuladorFS {
         Archivo archivo = tablaAsignacion.obtenerArchivo(rutaCompleta);
         if (archivo == null) return;
 
-        // Liberar bloques en disco
         int actual = archivo.getPrimerBloque();
         while (actual != Bloque.FIN_DE_ARCHIVO && actual >= 0) {
             Bloque b = disco.getBloque(actual);
@@ -176,12 +158,89 @@ public class SimuladorFS {
             actual = siguiente;
         }
 
-        // Eliminar de estructuras lógicas
         padre.eliminarHijo(archivo);
         tablaAsignacion.eliminarRegistro(rutaCompleta);
     }
+    
+    // Eliminación recursiva (Requisito PDF)
+    private void eliminarDirectorioRecursivo(String nombreDir, Directorio padre, String rutaDir) {
+        // Buscar el objeto directorio
+        Directorio aBorrar = null;
+        Arraylist<NodoFS> hijosPadre = padre.getHijos();
+        for(int i=0; i<hijosPadre.size(); i++) {
+            if(hijosPadre.get(i).getNombre().equals(nombreDir) && hijosPadre.get(i) instanceof Directorio) {
+                aBorrar = (Directorio) hijosPadre.get(i);
+                break;
+            }
+        }
+        
+        if (aBorrar == null) return;
 
-    // Getters/Setters
+        // Borrar contenido
+        // Hacemos copia para no afectar iteración al borrar
+        Object[] contenido = aBorrar.getHijos().toArray();
+        
+        for (Object obj : contenido) {
+            NodoFS nodo = (NodoFS) obj;
+            String subRuta = rutaDir + "/" + nodo.getNombre();
+            if (nodo instanceof Archivo) {
+                eliminarArchivoFisico(subRuta, aBorrar);
+            } else if (nodo instanceof Directorio) {
+                eliminarDirectorioRecursivo(nodo.getNombre(), aBorrar, subRuta);
+            }
+        }
+        // Finalmente borrar la carpeta vacía del padre
+        padre.eliminarHijo(aBorrar);
+    }
+
+    // REQ: Renombrar
+    public void renombrarArchivo(String rutaVieja, String nuevoNombre) {
+        Archivo archivo = tablaAsignacion.obtenerArchivo(rutaVieja);
+        if (archivo == null) return;
+
+        // Actualizar FAT
+        tablaAsignacion.eliminarRegistro(rutaVieja);
+        archivo.setNombre(nuevoNombre);
+        
+        // Reconstruir ruta (Simplificado, asume mismo padre)
+        String pathPadre = rutaVieja.substring(0, rutaVieja.lastIndexOf("/"));
+        String nuevaRuta = pathPadre + "/" + nuevoNombre;
+        
+        tablaAsignacion.registrarArchivo(nuevaRuta, archivo);
+    }
+
+    // REQ: Persistencia (Guardar simple)
+    public void guardarEstado() {
+        try (FileWriter writer = new FileWriter("filesystem_dump.csv")) {
+            writer.write("RUTA,PRIMER_BLOQUE,TAMANO,CREADOR\n");
+            // Iterar sobre los bloques ocupados para reconstruir info basica
+            // Nota: En un sistema real iteraríamos la FAT, pero el Hashmap custom requiere iterador público.
+            // Aquí guardamos solo lo que está en memoria FAT.
+            
+            // Asumimos que hiciste publico el iterador en Fase 1 o usas este truco:
+            // Guardamos basándonos en el árbol que SÍ podemos recorrer.
+            guardarRecursivo(raiz, "", writer);
+            System.out.println("Estado guardado en filesystem_dump.csv");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void guardarRecursivo(Directorio dir, String rutaActual, FileWriter writer) throws IOException {
+        Arraylist<NodoFS> hijos = dir.getHijos();
+        for(int i=0; i<hijos.size(); i++) {
+            NodoFS nodo = hijos.get(i);
+            String nuevaRuta = rutaActual.equals("/") ? "/" + nodo.getNombre() : rutaActual + "/" + nodo.getNombre();
+            
+            if(nodo instanceof Archivo) {
+                Archivo a = (Archivo) nodo;
+                writer.write(String.format("%s,%d,%d,%s\n", nuevaRuta, a.getPrimerBloque(), a.getTamanoEnBloques(), a.getCreador()));
+            } else if (nodo instanceof Directorio) {
+                guardarRecursivo((Directorio) nodo, nuevaRuta, writer);
+            }
+        }
+    }
+
     public Disco getDisco() { return disco; }
     public Directorio getRaiz() { return raiz; }
     public Cola<ProcesoIO> getColaProcesos() { return colaProcesos; }
@@ -189,51 +248,4 @@ public class SimuladorFS {
     public ModoUsuario getModoUsuario() { return modoUsuario; }
     public void setModoUsuario(ModoUsuario m) { this.modoUsuario = m; }
     public TablaAsignacion getTablaAsignacion() { return tablaAsignacion; }
-        public void renombrarArchivo(String rutaVieja, String nuevoNombre) {
-        Archivo archivo = tablaAsignacion.obtenerArchivo(rutaVieja);
-        if (archivo == null) return;
-
-        Directorio padre = archivo.getPadre();
-        // Validar si ya existe nombre en el padre (simplificado)
-        
-        // Actualizar nombre del nodo
-        archivo.setNombre(nuevoNombre);
-        
-        // Actualizar FAT: Remover entrada vieja y poner nueva
-        tablaAsignacion.eliminarRegistro(rutaVieja);
-        
-        // Construir nueva ruta (Asumiendo padre es root para simplificar ejemplo, 
-        // en real se debe reconstruir ruta completa)
-        String nuevaRuta = "/root/" + nuevoNombre; // Simplificación
-        tablaAsignacion.registrarArchivo(nuevaRuta, archivo);
-    }
-
-    // REQ 7: Persistencia (Guardar)
-    public void guardarSistema() {
-        try (java.io.FileWriter fw = new java.io.FileWriter("filesystem.csv")) {
-            // Guardar formato: RUTA,PRIMER_BLOQUE,TAMANO,CREADOR
-            // Como Hashmap no es iterable fácilmente sin modificarlo, 
-            // iteramos sobre los bloques del disco para encontrar los archivos
-            // OJO: Esto asume que tu Hashmap tiene un método para obtener valores o entrySet iterable.
-            // Si usaste el Hashmap de la Fase 1 tal cual, usa el Disco para recuperar los archivos:
-            
-            // Enfoque inverso: Recorrer el disco para hallar cabeceras de archivos
-            for (int i = 0; i < disco.getCantidadBloques(); i++) {
-                modelo.Bloque b = disco.getBloque(i);
-                if (b.estaOcupado() && b.getIdArchivo() != 0) {
-                    // Aquí necesitaríamos referencia inversa Bloque -> Archivo para ser eficientes.
-                    // Por simplicidad en este proyecto sin librerías:
-                    // Guardamos la Tabla de Asignación si hiciste el Hashmap iterable en la Fase 1.
-                }
-            }
-            // ALERTA: Para cumplir esto fácil sin librerías complejas, 
-            // guarda solo la estructura básica en un log simulado o implementa
-            // un recorrido simple si tu Hashmap lo permite.
-            System.out.println("Sistema guardado en filesystem.csv (Simulado)");
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
 }
