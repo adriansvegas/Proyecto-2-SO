@@ -15,11 +15,14 @@ import javax.swing.SwingUtilities;
 
 public class Main {
     public static void main(String[] args) {
-       // Opcional: Inicializar logger
-        // Logger.init(); 
+        System.out.println("Iniciando Kernel...");
         
-        System.out.println("Iniciando Sistema de Archivos...");
-        
+        try {
+            javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         SwingUtilities.invokeLater(() -> {
             SimuladorFS modelo = new SimuladorFS();
             VentanaPrincipal vista = new VentanaPrincipal(modelo);

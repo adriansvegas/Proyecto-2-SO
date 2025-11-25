@@ -4,13 +4,16 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/vista/PanelDisco.java</file>
-            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/EDD/Cola.java</file>
-            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/EDD/CustomNode.java</file>
-            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/EDD/Arraylist.java</file>
-            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/planificaciondisco/PlanificadorSCAN.java</file>
-            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/EDD/Hashmap.java</file>
             <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/proyecto_so2/Main.java</file>
+            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/Controlador/SimuladorFS.java</file>
+            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/EDD/Hashmap.java</file>
+            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/vista/VentanaPrincipal.java</file>
+            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/planificaciondisco/PlanificadorSCAN.java</file>
+            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/EDD/Arraylist.java</file>
+            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/EDD/Cola.java</file>
+            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/modelo/ProcesoIO.java</file>
             <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/planificaciondisco/PlanificadorSSTF.java</file>
+            <file>file:/C:/Users/Edgar/Documents/NetBeansProjects/Proyecto-2-SO/PROYECTO_SO2/src/EDD/CustomNode.java</file>
         </group>
     </open-files>
 </project-private>
