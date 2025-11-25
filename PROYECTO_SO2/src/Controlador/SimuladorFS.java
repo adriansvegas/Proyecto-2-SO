@@ -5,101 +5,228 @@
 package Controlador;
 import EDD.Cola;
 import EDD.Arraylist;
-import EDD.Hashmap;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.Random;
 import modelo.*;
 import planificaciondisco.*;
 /**
  *
  * @author adria
  */
+
 public class SimuladorFS {
     private Disco disco;
     private TablaAsignacion tablaAsignacion;
     private Directorio raiz;
-    private Cola<ProcesoIO> colaProcesos;
+    private Cola<ProcesoIO> colaProcesos;           
+    private Arraylist<ProcesoIO> procesosHistoricos; 
+    private ProcesoIO procesoEnEjecucion = null; 
     private PlanificadorDisco planificador;
     private int cabezal;
     private ModoUsuario modoUsuario;
+    private String passwordAdmin = null; 
+
+    private final String[] NOMBRES = {"system", "data", "log", "config", "user", "bin", "temp", "swap"};
+    private final String[] EXTS = {".dat", ".log", ".sys", ".txt", ".bin"};
 
     public SimuladorFS() {
         this.disco = new Disco();
         this.tablaAsignacion = new TablaAsignacion();
         this.raiz = new Directorio("root", null);
         this.colaProcesos = new Cola<>();
+        this.procesosHistoricos = new Arraylist<>();
         this.planificador = new PlanificadorFIFO(); 
         this.cabezal = 0;
-        this.modoUsuario = ModoUsuario.ADMINISTRADOR;
-        
-        
+        this.modoUsuario = ModoUsuario.USUARIO; 
         disco.getBloque(0).ocupar(0, Bloque.FIN_DE_ARCHIVO);
     }
 
-    public void agregarProceso(String usuario, ProcesoIO.Operacion op, String ruta, int tamano) {
-        int cilindroEstimado = 0;
-        if (op == ProcesoIO.Operacion.CREAR_ARCHIVO) {
-             cilindroEstimado = disco.buscarBloqueLibre();
-             if (cilindroEstimado == -1) cilindroEstimado = disco.getCantidadBloques() - 1; 
-        } else {
-             Archivo a = tablaAsignacion.obtenerArchivo(ruta);
-             if (a != null) cilindroEstimado = a.getPrimerBloque();
+    public boolean isPasswordSet() { return passwordAdmin != null && !passwordAdmin.isEmpty(); }
+    public void setPasswordAdmin(String newPass) { this.passwordAdmin = newPass; }
+    public boolean loginAdmin(String input) {
+        if (passwordAdmin == null) return false;
+        return passwordAdmin.equals(input);
+    }
+    public boolean cambiarPasswordAdmin(String oldPass, String newPass) {
+        if (loginAdmin(oldPass)) {
+            this.passwordAdmin = newPass;
+            return true;
         }
-        
-        ProcesoIO p = new ProcesoIO(usuario, op, ruta, tamano, cilindroEstimado);
+        return false;
+    }
+
+    public boolean existeArchivo(String rutaCompleta) { return tablaAsignacion.obtenerArchivo(rutaCompleta) != null; }
+    public boolean esDirectorio(String ruta) {
+        if (ruta.equals("root")) return true;
+        Directorio d = navegar(ruta);
+        return d != null; 
+    }
+
+    public void generarCargaAleatoria(String rutaBase) {
+        this.procesosHistoricos = new Arraylist<>();
+        this.colaProcesos = new Cola<>(); 
+        this.procesoEnEjecucion = null; 
+        Random rand = new Random();
+        int cantidad = 10; 
+        if (rutaBase == null || rutaBase.trim().isEmpty()) rutaBase = "root";
+        if (existeArchivo(rutaBase)) {
+            if (rutaBase.contains("/")) rutaBase = rutaBase.substring(0, rutaBase.lastIndexOf("/"));
+            else rutaBase = "root";
+        }
+        for (int i = 0; i < cantidad; i++) {
+            int tipo = rand.nextInt(100);
+            String nombre = NOMBRES[rand.nextInt(NOMBRES.length)] + "_" + rand.nextInt(99) + EXTS[rand.nextInt(EXTS.length)];
+            String ruta = rutaBase + "/" + nombre;
+            int duracion = 3 + rand.nextInt(5); 
+            if (!existeArchivo(ruta)) {
+                if (tipo < 60) {
+                    int tam = 1 + rand.nextInt(4);
+                    agregarProceso("auto", ProcesoIO.Operacion.CREAR_ARCHIVO, ruta, tam, duracion);
+                } else if (tipo < 80) {
+                    agregarProceso("auto", ProcesoIO.Operacion.ELIMINAR_ARCHIVO, ruta, 0, duracion);
+                } else {
+                    String nombreDir = "dir_" + rand.nextInt(100);
+                    agregarProceso("auto", ProcesoIO.Operacion.CREAR_DIR, rutaBase + "/" + nombreDir, 0, duracion);
+                }
+            }
+        }
+    }
+
+    public void agregarProceso(String usuario, ProcesoIO.Operacion op, String ruta, int tamano, int duracion) {
+        int cil = 0;
+        if (op == ProcesoIO.Operacion.CREAR_ARCHIVO) cil = disco.buscarBloqueLibre();
+        else {
+             Archivo a = tablaAsignacion.obtenerArchivo(ruta);
+             if(a != null) cil = a.getPrimerBloque();
+        }
+        if(cil == -1) cil = 0;
+        ProcesoIO p = new ProcesoIO(usuario, op, ruta, tamano, cil, duracion);
         p.setEstado(ProcesoIO.Estado.LISTO);
-        colaProcesos.add(p);
+        colaProcesos.add(p);       
+        procesosHistoricos.add(p); 
     }
 
     public ProcesoIO ejecutarCiclo() {
-        if (colaProcesos.isEmpty()) return null;
-
-        ProcesoIO proc = planificador.seleccionarSiguiente(colaProcesos, cabezal);
-        if (proc != null) {
-            proc.setEstado(ProcesoIO.Estado.EJECUCION);
-            cabezal = proc.getCilindroPeticion(); 
-            procesarSolicitud(proc);
-            proc.setEstado(ProcesoIO.Estado.TERMINADO);
+        if (procesoEnEjecucion == null) {
+            if (colaProcesos.isEmpty()) return null;
+            procesoEnEjecucion = planificador.seleccionarSiguiente(colaProcesos, cabezal);
         }
-        return proc;
+        if (procesoEnEjecucion != null) {
+            procesoEnEjecucion.setEstado(ProcesoIO.Estado.EJECUCION);
+            procesoEnEjecucion.ejecutarPaso();
+            cabezal = procesoEnEjecucion.getCilindroPeticion();
+            if (procesoEnEjecucion.esTerminado()) {
+                procesarSolicitud(procesoEnEjecucion);
+                procesoEnEjecucion.setEstado(ProcesoIO.Estado.TERMINADO);
+                ProcesoIO terminado = procesoEnEjecucion;
+                procesoEnEjecucion = null; 
+                return terminado;
+            }
+            return procesoEnEjecucion;
+        }
+        return null;
     }
 
     private void procesarSolicitud(ProcesoIO proc) {
         String ruta = proc.getRutaObjetivo();
         String[] partes = ruta.split("/");
-        String nombreEntidad = partes[partes.length - 1];
-        
-        Directorio padre = navegarDirectorio(ruta); 
-
-        if (padre == null) {
-            System.err.println("Error: Ruta inválida " + ruta);
-            return;
-        }
-
+        String nombre = partes[partes.length - 1];
+        String rutaPadre = ruta.contains("/") ? ruta.substring(0, ruta.lastIndexOf("/")) : "root";
+        Directorio padre = navegar(rutaPadre); 
+        if (padre == null) return;
         switch (proc.getOperacion()) {
-            case CREAR_ARCHIVO:
-                crearArchivoFisico(nombreEntidad, padre, proc.getTamano(), proc.getUsuario(), ruta);
+            case CREAR_ARCHIVO: 
+                if (!existeArchivo(ruta)) crearArchivoFisico(nombre, padre, proc.getTamano(), proc.getUsuario(), ruta, proc.getId());
                 break;
-            case ELIMINAR_ARCHIVO:
-                eliminarArchivoFisico(ruta, padre);
+            case ELIMINAR_ARCHIVO: 
+                if (existeArchivo(ruta)) eliminarArchivoFisico(ruta, padre);
+                else eliminarDirectorioRecursivo(nombre, padre, ruta);
                 break;
-            case CREAR_DIR:
-                Directorio nuevoDir = new Directorio(nombreEntidad, padre);
-                padre.agregarHijo(nuevoDir);
-                break;
-            case ELIMINAR_DIR:
-                eliminarDirectorioRecursivo(nombreEntidad, padre, ruta);
-                break;
+            case CREAR_DIR: padre.agregarHijo(new Directorio(nombre, padre)); break;
+            case ELIMINAR_DIR: eliminarDirectorioRecursivo(nombre, padre, ruta); break;
         }
     }
+    
+    private void crearArchivoFisico(String n, Directorio p, int t, String u, String r, int pidProceso) {
+         if (disco.contarBloquesLibres() < t) return;
+         int start = -1; 
+         int anterior = -1;
+         for(int i=0; i<t; i++) {
+             int b = disco.buscarBloqueLibre();
+             if(b != -1) {
+                 if (anterior != -1) disco.getBloque(anterior).setSiguienteBloque(b);
+                 disco.getBloque(b).ocupar(pidProceso, Bloque.FIN_DE_ARCHIVO);
+                 if(start == -1) start = b;
+                 anterior = b;
+             }
+         }
+         if(start != -1) {
+             Archivo arch = new Archivo(n, p, start, t, u);
+             p.agregarHijo(arch);
+             tablaAsignacion.registrarArchivo(r, arch);
+         }
+    }
 
-    private Directorio navegarDirectorio(String ruta) {
+    private void eliminarArchivoFisico(String r, Directorio p) {
+        Archivo a = tablaAsignacion.obtenerArchivo(r);
+        if(a!=null) {
+            int actual = a.getPrimerBloque();
+            while(actual != -1 && actual >= 0) {
+                Bloque b = disco.getBloque(actual);
+                int sig = b.getSiguienteBloque();
+                b.liberar();
+                actual = sig;
+            }
+            tablaAsignacion.eliminarRegistro(r);
+            p.eliminarHijo(a);
+        }
+    }
+    
+    private void eliminarDirectorioRecursivo(String nombreDir, Directorio padre, String rutaDir) {
+        Directorio aBorrar = null;
+        Arraylist<NodoFS> hijosPadre = padre.getHijos();
+        for(int i=0; i<hijosPadre.size(); i++) {
+            if(hijosPadre.get(i).getNombre().equals(nombreDir) && hijosPadre.get(i) instanceof Directorio) {
+                aBorrar = (Directorio) hijosPadre.get(i);
+                break;
+            }
+        }
+        if (aBorrar == null) return;
+        Object[] contenido = aBorrar.getHijos().toArray();
+        for (Object obj : contenido) {
+            NodoFS nodo = (NodoFS) obj;
+            String subRuta = rutaDir + "/" + nodo.getNombre();
+            if (nodo instanceof Archivo) eliminarArchivoFisico(subRuta, aBorrar);
+            else if (nodo instanceof Directorio) eliminarDirectorioRecursivo(nodo.getNombre(), aBorrar, subRuta);
+        }
+        padre.eliminarHijo(aBorrar);
+    }
+
+    public void renombrarArchivo(String rutaVieja, String nuevoNombre) {
+        Archivo archivo = tablaAsignacion.obtenerArchivo(rutaVieja);
+        if (archivo == null) return;
+        tablaAsignacion.eliminarRegistro(rutaVieja);
+        archivo.setNombre(nuevoNombre);
+        String directorioPadre = rutaVieja.contains("/") ? rutaVieja.substring(0, rutaVieja.lastIndexOf("/")) : "root";
+        String nuevaRuta = directorioPadre + "/" + nuevoNombre;
+        tablaAsignacion.registrarArchivo(nuevaRuta, archivo);
+    }
+
+    public void guardarEstado() {
+        try (FileWriter fw = new FileWriter("estado_disco.csv")) {
+            fw.write("REPORTE_ESTADO_SISTEMA\n");
+            fw.write("Bloques_Totales: " + disco.getCantidadBloques() + "\n");
+            fw.write("Bloques_Libres: " + disco.contarBloquesLibres() + "\n");
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
+    private Directorio navegar(String ruta) {
+        if (ruta.equals("root") || ruta.equals("/")) return raiz;
         String[] partes = ruta.split("/");
-        if (partes.length <= 1) return raiz; 
-
         Directorio actual = raiz;
-        for (int i = 1; i < partes.length - 1; i++) {
+        int start = partes[0].equals("root") ? 1 : 0;
+        for (int i = start; i < partes.length; i++) {
             boolean encontrado = false;
             Arraylist<NodoFS> hijos = actual.getHijos();
             for (int j = 0; j < hijos.size(); j++) {
@@ -110,136 +237,17 @@ public class SimuladorFS {
                     break;
                 }
             }
-            if (!encontrado) return null; 
+            if (!encontrado) return null;
         }
         return actual;
     }
 
-    private void crearArchivoFisico(String nombre, Directorio padre, int tamano, String creador, String rutaCompleta) {
-        if (disco.contarBloquesLibres() < tamano) {
-            System.err.println("Error: Espacio insuficiente.");
-            return;
-        }
-
-        int bloquesAsignados = 0;
-        int anteriorIndex = -1;
-        int primerBloqueIndex = -1;
-
-        for (int i = 0; i < disco.getCantidadBloques() && bloquesAsignados < tamano; i++) {
-            if (!disco.getBloque(i).estaOcupado()) {
-                if (primerBloqueIndex == -1) primerBloqueIndex = i;
-                
-                if (anteriorIndex != -1) {
-                    disco.getBloque(anteriorIndex).setSiguienteBloque(i);
-                }
-                
-                disco.getBloque(i).ocupar(Math.abs(nombre.hashCode()), Bloque.FIN_DE_ARCHIVO); 
-                anteriorIndex = i;
-                bloquesAsignados++;
-            }
-        }
-
-        if (bloquesAsignados == tamano) {
-            Archivo nuevoArchivo = new Archivo(nombre, padre, primerBloqueIndex, tamano, creador);
-            padre.agregarHijo(nuevoArchivo);
-            tablaAsignacion.registrarArchivo(rutaCompleta, nuevoArchivo);
-        }
-    }
-
-    private void eliminarArchivoFisico(String rutaCompleta, Directorio padre) {
-        Archivo archivo = tablaAsignacion.obtenerArchivo(rutaCompleta);
-        if (archivo == null) return;
-
-        int actual = archivo.getPrimerBloque();
-        while (actual != Bloque.FIN_DE_ARCHIVO && actual >= 0) {
-            Bloque b = disco.getBloque(actual);
-            int siguiente = b.getSiguienteBloque();
-            b.liberar();
-            actual = siguiente;
-        }
-
-        padre.eliminarHijo(archivo);
-        tablaAsignacion.eliminarRegistro(rutaCompleta);
-    }
-    
- 
-    private void eliminarDirectorioRecursivo(String nombreDir, Directorio padre, String rutaDir) {
-        // Buscar el objeto directorio
-        Directorio aBorrar = null;
-        Arraylist<NodoFS> hijosPadre = padre.getHijos();
-        for(int i=0; i<hijosPadre.size(); i++) {
-            if(hijosPadre.get(i).getNombre().equals(nombreDir) && hijosPadre.get(i) instanceof Directorio) {
-                aBorrar = (Directorio) hijosPadre.get(i);
-                break;
-            }
-        }
-        
-        if (aBorrar == null) return;
-
-
-        Object[] contenido = aBorrar.getHijos().toArray();
-        
-        for (Object obj : contenido) {
-            NodoFS nodo = (NodoFS) obj;
-            String subRuta = rutaDir + "/" + nodo.getNombre();
-            if (nodo instanceof Archivo) {
-                eliminarArchivoFisico(subRuta, aBorrar);
-            } else if (nodo instanceof Directorio) {
-                eliminarDirectorioRecursivo(nodo.getNombre(), aBorrar, subRuta);
-            }
-        }
-      
-        padre.eliminarHijo(aBorrar);
-    }
-
-   
-    public void renombrarArchivo(String rutaVieja, String nuevoNombre) {
-        Archivo archivo = tablaAsignacion.obtenerArchivo(rutaVieja);
-        if (archivo == null) return;
-
-        
-        tablaAsignacion.eliminarRegistro(rutaVieja);
-        archivo.setNombre(nuevoNombre);
-        
-        
-        String pathPadre = rutaVieja.substring(0, rutaVieja.lastIndexOf("/"));
-        String nuevaRuta = pathPadre + "/" + nuevoNombre;
-        
-        tablaAsignacion.registrarArchivo(nuevaRuta, archivo);
-    }
-
-    
-    public void guardarEstado() {
-        try (FileWriter writer = new FileWriter("filesystem_dump.csv")) {
-            writer.write("RUTA,PRIMER_BLOQUE,TAMANO,CREADOR\n");
-            
-            guardarRecursivo(raiz, "", writer);
-            System.out.println("Estado guardado en filesystem_dump.csv");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    private void guardarRecursivo(Directorio dir, String rutaActual, FileWriter writer) throws IOException {
-        Arraylist<NodoFS> hijos = dir.getHijos();
-        for(int i=0; i<hijos.size(); i++) {
-            NodoFS nodo = hijos.get(i);
-            String nuevaRuta = rutaActual.equals("/") ? "/" + nodo.getNombre() : rutaActual + "/" + nodo.getNombre();
-            
-            if(nodo instanceof Archivo) {
-                Archivo a = (Archivo) nodo;
-                writer.write(String.format("%s,%d,%d,%s\n", nuevaRuta, a.getPrimerBloque(), a.getTamanoEnBloques(), a.getCreador()));
-            } else if (nodo instanceof Directorio) {
-                guardarRecursivo((Directorio) nodo, nuevaRuta, writer);
-            }
-        }
-    }
-
+    public Cola<ProcesoIO> getColaProcesos() { return colaProcesos; }
+    public Arraylist<ProcesoIO> getProcesosHistoricos() { return procesosHistoricos; }
     public Disco getDisco() { return disco; }
     public Directorio getRaiz() { return raiz; }
-    public Cola<ProcesoIO> getColaProcesos() { return colaProcesos; }
-    public void setPlanificador(PlanificadorDisco p) { this.planificador = p; }
-    public ModoUsuario getModoUsuario() { return modoUsuario; }
-    public void setModoUsuario(ModoUsuario m) { this.modoUsuario = m; }
     public TablaAsignacion getTablaAsignacion() { return tablaAsignacion; }
+    public void setPlanificador(PlanificadorDisco p) { this.planificador = p; }
+    public void setModoUsuario(ModoUsuario m) { this.modoUsuario = m; }
+    public ModoUsuario getModoUsuario() { return modoUsuario; }
 }
