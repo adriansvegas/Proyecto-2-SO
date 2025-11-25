@@ -23,19 +23,16 @@ import java.awt.event.ActionListener;
  */
 public class VentanaPrincipal extends JFrame {
     private SimuladorFS simulador;
-    
     private JTree treeDirectorios;
     private PanelDisco panelDisco;
     private JTable tablaFAT;
     private JTable tablaProcesos; 
     private DefaultTableModel modeloProcesos;
     private JTextArea logArea;
-    
     private JComboBox<String> cmbAlgoritmo;
     private JComboBox<ModoUsuario> cmbModo;
     private JButton btnCarga, btnCrearArch, btnCrearDir, btnRenombrar, btnEliminar, btnGuardar;
-    private JButton btnIniciarPausar;
-    private JButton btnCambiarPass;
+    private JButton btnIniciarPausar, btnCambiarPass;
     
     private Timer timerEjecucion;
     private final int VELOCIDAD_EJECUCION = 1000; 
@@ -77,55 +74,37 @@ public class VentanaPrincipal extends JFrame {
         
         cmbModo = new JComboBox<>(ModoUsuario.values());
         estilizarCombo(cmbModo);
-        
         cmbModo.addActionListener(e -> {
             ModoUsuario seleccion = (ModoUsuario) cmbModo.getSelectedItem();
-            
             if (seleccion == ModoUsuario.ADMINISTRADOR) {
                 if (!simulador.isPasswordSet()) {
                     JPasswordField pf = new JPasswordField();
-                    int ok = JOptionPane.showConfirmDialog(this, pf, 
-                        "🆕 CONFIGURACIÓN INICIAL\nCree una contraseña para el Administrador:", 
-                        JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
-                    
+                    int ok = JOptionPane.showConfirmDialog(this, pf, "🆕 CREAR CONTRASEÑA ADMIN:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
                     if (ok == JOptionPane.OK_OPTION) {
                         String newPass = new String(pf.getPassword());
                         if (!newPass.trim().isEmpty()) {
                             simulador.setPasswordAdmin(newPass);
                             simulador.setModoUsuario(ModoUsuario.ADMINISTRADOR);
-                            log("✅ Sistema inicializado. Admin configurado.");
+                            log("✅ Admin configurado.");
                             aplicarPermisosPorRol();
                         } else {
-                            JOptionPane.showMessageDialog(this, "La contraseña no puede estar vacía.");
                             cmbModo.setSelectedItem(ModoUsuario.USUARIO);
                         }
-                    } else {
-                        cmbModo.setSelectedItem(ModoUsuario.USUARIO);
-                    }
-                } 
-                else {
+                    } else cmbModo.setSelectedItem(ModoUsuario.USUARIO);
+                } else {
                     JPasswordField pf = new JPasswordField();
-                    int ok = JOptionPane.showConfirmDialog(this, pf, 
-                        "🔒 SEGURIDAD\nIngrese Contraseña Admin:", 
-                        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-                    
-                    if (ok == JOptionPane.OK_OPTION) {
-                        String pass = new String(pf.getPassword());
-                        if (simulador.loginAdmin(pass)) {
-                            simulador.setModoUsuario(ModoUsuario.ADMINISTRADOR);
-                            log("✅ Acceso ADMIN concedido.");
-                            aplicarPermisosPorRol();
-                        } else {
-                            JOptionPane.showMessageDialog(this, "⛔ Contraseña Incorrecta", "Error", JOptionPane.ERROR_MESSAGE);
-                            cmbModo.setSelectedItem(ModoUsuario.USUARIO);
-                        }
+                    int ok = JOptionPane.showConfirmDialog(this, pf, "🔒 PASSWORD ADMIN:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                    if (ok == JOptionPane.OK_OPTION && simulador.loginAdmin(new String(pf.getPassword()))) {
+                        simulador.setModoUsuario(ModoUsuario.ADMINISTRADOR);
+                        log("✅ Acceso ADMIN.");
+                        aplicarPermisosPorRol();
                     } else {
                         cmbModo.setSelectedItem(ModoUsuario.USUARIO);
                     }
                 }
             } else {
                 simulador.setModoUsuario(ModoUsuario.USUARIO);
-                log("Modo cambiado a: USUARIO");
+                log("Modo: USUARIO");
                 aplicarPermisosPorRol();
             }
         });
@@ -137,7 +116,7 @@ public class VentanaPrincipal extends JFrame {
         estilizarCombo(cmbAlgoritmo);
         cmbAlgoritmo.addActionListener(e -> cambiarAlgoritmo());
 
-        JButton btnAyuda = crearBoton("ℹ Información Roles", e -> mostrarAyudaRoles());
+        JButton btnAyuda = crearBoton("ℹ Ayuda Roles", e -> mostrarAyudaRoles());
         btnAyuda.setBackground(new Color(100, 100, 100));
 
         pnlCtrls.add(crearLabel("Modo Usuario:")); pnlCtrls.add(cmbModo);
@@ -148,7 +127,7 @@ public class VentanaPrincipal extends JFrame {
         treeDirectorios = new JTree();
         estilizarArbol(treeDirectorios);
         JScrollPane scrollTree = new JScrollPane(treeDirectorios);
-        decorarScroll(scrollTree, "Explorador (Seleccione Destino)");
+        decorarScroll(scrollTree, "Explorador");
 
         sidebar.add(pnlCtrls, BorderLayout.NORTH);
         sidebar.add(scrollTree, BorderLayout.CENTER);
@@ -280,16 +259,13 @@ public class VentanaPrincipal extends JFrame {
     }
 
     private void mostrarAyudaRoles() {
-        JOptionPane.showMessageDialog(this, 
-            "ADMIN: Control total + Gestión de Clave.\n" +
-            "USUARIO: Solo lectura y Carga Masiva.", 
-            "Roles", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, "ADMIN: Control total.\nUSUARIO: Solo lectura y Carga Masiva.", "Roles", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void generarCarga() {
         String ruta = obtenerRutaSeleccionada();
         simulador.generarCargaAleatoria(ruta);
-        log("Carga generada en: " + ruta);
+        log("Carga en: " + ruta);
         actualizarVista();
     }
     
@@ -297,23 +273,12 @@ public class VentanaPrincipal extends JFrame {
         JPasswordField pfOld = new JPasswordField();
         int action = JOptionPane.showConfirmDialog(this, pfOld, "Contraseña ACTUAL:", JOptionPane.OK_CANCEL_OPTION);
         if (action != JOptionPane.OK_OPTION) return;
-        
-        String oldPass = new String(pfOld.getPassword());
-        if (!simulador.loginAdmin(oldPass)) {
-            JOptionPane.showMessageDialog(this, "Clave incorrecta.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
+        if (!simulador.loginAdmin(new String(pfOld.getPassword()))) return;
         JPasswordField pfNew = new JPasswordField();
         int action2 = JOptionPane.showConfirmDialog(this, pfNew, "NUEVA contraseña:", JOptionPane.OK_CANCEL_OPTION);
         if (action2 != JOptionPane.OK_OPTION) return;
-        
-        String newPass = new String(pfNew.getPassword());
-        if (newPass.trim().isEmpty()) return;
-        
-        if (simulador.cambiarPasswordAdmin(oldPass, newPass)) {
-            JOptionPane.showMessageDialog(this, "✅ Clave actualizada.");
-            log("Seguridad: Clave de Admin cambiada.");
+        if (simulador.cambiarPasswordAdmin(new String(pfOld.getPassword()), new String(pfNew.getPassword()))) {
+            log("Seguridad: Clave actualizada.");
         }
     }
 
@@ -336,9 +301,8 @@ public class VentanaPrincipal extends JFrame {
 
     private void ejecutarPasoAutomatico() {
         ProcesoIO p = simulador.ejecutarCiclo();
-        if (p != null) {
-            actualizarVista();
-        } else {
+        if (p != null) actualizarVista();
+        else {
             if (ejecutando) toggleSimulacion(); 
             log("Cola vacía.");
         }
@@ -348,13 +312,10 @@ public class VentanaPrincipal extends JFrame {
         DefaultMutableTreeNode root = construirArbol(simulador.getRaiz());
         treeDirectorios.setModel(new DefaultTreeModel(root));
         for(int i=0;i<treeDirectorios.getRowCount();i++) treeDirectorios.expandRow(i);
-
         panelDisco.repaint();
-
         DefaultTableModel modelFAT = (DefaultTableModel) tablaFAT.getModel();
         modelFAT.setRowCount(0);
         llenarTablaFAT(simulador.getRaiz(), "", modelFAT);
-
         modeloProcesos.setRowCount(0);
         Arraylist<ProcesoIO> historial = simulador.getProcesosHistoricos();
         if (historial != null) {
@@ -391,18 +352,13 @@ public class VentanaPrincipal extends JFrame {
     private void renombrar() { 
         String ruta = validarDestinoSeleccionado();
         if (ruta == null) return;
-        if (ruta.equals("root")) return;
         String n = JOptionPane.showInputDialog("Nuevo Nombre:");
-        if(n != null && !n.trim().isEmpty()) { 
-            simulador.renombrarArchivo(ruta, n); 
-            actualizarVista(); 
-        }
+        if(n != null && !n.trim().isEmpty()) { simulador.renombrarArchivo(ruta, n); actualizarVista(); }
     }
     
     private void borrar() { 
         String ruta = validarDestinoSeleccionado();
         if (ruta == null) return;
-        if (ruta.equals("root")) return;
         int confirm = JOptionPane.showConfirmDialog(this, "¿Eliminar: " + ruta + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             simulador.agregarProceso("admin", ProcesoIO.Operacion.ELIMINAR_ARCHIVO, ruta, 0, 3);
