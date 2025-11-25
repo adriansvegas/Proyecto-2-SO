@@ -33,7 +33,7 @@ public class SimuladorFS {
         this.cabezal = 0;
         this.modoUsuario = ModoUsuario.ADMINISTRADOR;
         
-        // Ocupar bloque 0 para sistema
+        
         disco.getBloque(0).ocupar(0, Bloque.FIN_DE_ARCHIVO);
     }
 
@@ -162,7 +162,7 @@ public class SimuladorFS {
         tablaAsignacion.eliminarRegistro(rutaCompleta);
     }
     
-    // Eliminación recursiva (Requisito PDF)
+ 
     private void eliminarDirectorioRecursivo(String nombreDir, Directorio padre, String rutaDir) {
         // Buscar el objeto directorio
         Directorio aBorrar = null;
@@ -176,8 +176,7 @@ public class SimuladorFS {
         
         if (aBorrar == null) return;
 
-        // Borrar contenido
-        // Hacemos copia para no afectar iteración al borrar
+
         Object[] contenido = aBorrar.getHijos().toArray();
         
         for (Object obj : contenido) {
@@ -189,36 +188,31 @@ public class SimuladorFS {
                 eliminarDirectorioRecursivo(nodo.getNombre(), aBorrar, subRuta);
             }
         }
-        // Finalmente borrar la carpeta vacía del padre
+      
         padre.eliminarHijo(aBorrar);
     }
 
-    // REQ: Renombrar
+   
     public void renombrarArchivo(String rutaVieja, String nuevoNombre) {
         Archivo archivo = tablaAsignacion.obtenerArchivo(rutaVieja);
         if (archivo == null) return;
 
-        // Actualizar FAT
+        
         tablaAsignacion.eliminarRegistro(rutaVieja);
         archivo.setNombre(nuevoNombre);
         
-        // Reconstruir ruta (Simplificado, asume mismo padre)
+        
         String pathPadre = rutaVieja.substring(0, rutaVieja.lastIndexOf("/"));
         String nuevaRuta = pathPadre + "/" + nuevoNombre;
         
         tablaAsignacion.registrarArchivo(nuevaRuta, archivo);
     }
 
-    // REQ: Persistencia (Guardar simple)
+    
     public void guardarEstado() {
         try (FileWriter writer = new FileWriter("filesystem_dump.csv")) {
             writer.write("RUTA,PRIMER_BLOQUE,TAMANO,CREADOR\n");
-            // Iterar sobre los bloques ocupados para reconstruir info basica
-            // Nota: En un sistema real iteraríamos la FAT, pero el Hashmap custom requiere iterador público.
-            // Aquí guardamos solo lo que está en memoria FAT.
             
-            // Asumimos que hiciste publico el iterador en Fase 1 o usas este truco:
-            // Guardamos basándonos en el árbol que SÍ podemos recorrer.
             guardarRecursivo(raiz, "", writer);
             System.out.println("Estado guardado en filesystem_dump.csv");
         } catch (IOException e) {

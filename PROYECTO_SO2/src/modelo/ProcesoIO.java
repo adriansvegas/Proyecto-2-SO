@@ -16,12 +16,15 @@ public class ProcesoIO {
     private int id;
     private String usuario;
     private Operacion operacion;
-    private String rutaObjetivo; // Ej: "/home/datos.txt"
-    private int tamano; // Solo para CREAR_ARCHIVO
+    private String rutaObjetivo;
+    private int tamano;
     private Estado estado;
-    private int cilindroPeticion; // Simula la ubicación física (usaremos el primer bloque libre aproximado)
+    private int cilindroPeticion;
+    
+    private int tiempoTotal;
+    private int tiempoRestante;
 
-    public ProcesoIO(String usuario, Operacion operacion, String rutaObjetivo, int tamano, int cilindroPeticion) {
+    public ProcesoIO(String usuario, Operacion operacion, String rutaObjetivo, int tamano, int cilindroPeticion, int tiempoDuracion) {
         this.id = nextId++;
         this.usuario = usuario;
         this.operacion = operacion;
@@ -29,7 +32,15 @@ public class ProcesoIO {
         this.tamano = tamano;
         this.cilindroPeticion = cilindroPeticion;
         this.estado = Estado.NUEVO;
+        this.tiempoTotal = tiempoDuracion;
+        this.tiempoRestante = tiempoDuracion;
     }
+
+    public void ejecutarPaso() {
+        if (tiempoRestante > 0) tiempoRestante--;
+    }
+
+    public boolean esTerminado() { return tiempoRestante <= 0; }
 
     public int getId() { return id; }
     public String getUsuario() { return usuario; }
@@ -39,9 +50,11 @@ public class ProcesoIO {
     public int getCilindroPeticion() { return cilindroPeticion; }
     public Estado getEstado() { return estado; }
     public void setEstado(Estado estado) { this.estado = estado; }
+    public int getTiempoTotal() { return tiempoTotal; }
+    public int getTiempoRestante() { return tiempoRestante; }
 
     @Override
     public String toString() {
-        return String.format("ID:%d [%s] %s (Cil:%d)", id, operacion, rutaObjetivo, cilindroPeticion);
+        return String.format("[%s] %s (%ds)", operacion, rutaObjetivo, tiempoRestante);
     }
 }

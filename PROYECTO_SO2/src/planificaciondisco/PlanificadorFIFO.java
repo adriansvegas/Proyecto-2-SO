@@ -10,10 +10,10 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
-public class PlanificadorFIFO implements PlanificadorDisco{
+public class PlanificadorFIFO implements PlanificadorDisco {
     @Override
     public ProcesoIO seleccionarSiguiente(Cola<ProcesoIO> cola, int cabezalActual) {
-        return cola.poll(); // Atiende el primero que llegó
+        return cola.poll();
     }
     @Override
     public String getNombre() { return "FIFO"; }

@@ -9,15 +9,13 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
-public class PlanificadorSSTF implements PlanificadorDisco{
+public class PlanificadorSSTF implements PlanificadorDisco {
     @Override
     public ProcesoIO seleccionarSiguiente(Cola<ProcesoIO> cola, int cabezalActual) {
         if (cola.isEmpty()) return null;
-
         Object[] procesos = cola.toArray();
         ProcesoIO mejor = null;
         int menorDistancia = Integer.MAX_VALUE;
-
         for (Object obj : procesos) {
             ProcesoIO p = (ProcesoIO) obj;
             int distancia = Math.abs(p.getCilindroPeticion() - cabezalActual);
@@ -26,7 +24,6 @@ public class PlanificadorSSTF implements PlanificadorDisco{
                 mejor = p;
             }
         }
-        // Removemos el seleccionado de la cola original
         if (mejor != null) cola.remove(mejor);
         return mejor;
     }
