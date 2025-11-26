@@ -10,6 +10,7 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
+/** Algoritmo First-In First-Out: Atiende en orden de llegada. */
 public class PlanificadorFIFO implements PlanificadorDisco {
     @Override
     public ProcesoIO seleccionarSiguiente(Cola<ProcesoIO> cola, int cabezalActual) {

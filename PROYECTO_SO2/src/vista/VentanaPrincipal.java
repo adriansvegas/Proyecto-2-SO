@@ -22,6 +22,8 @@ import java.awt.event.ActionListener;
  *
  * @author Edgar
  */
+/** GUI Principal con tema oscuro y layout profesional. */
+
 public class VentanaPrincipal extends JFrame {
     private SimuladorFS simulador;
     

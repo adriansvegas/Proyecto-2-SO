@@ -8,6 +8,13 @@ package modelo;
  *
  * @author Edgar
  */
+/**
+ * Unidad mínima de almacenamiento físico.
+ * <p>
+ * Implementa la lógica de <b>Asignación Encadenada</b> mediante un puntero
+ * al siguiente bloque.
+ * </p>
+ */
 public class Bloque {
     // Punteros especiales para la lista enlazada del disco
     public static final int BLOQUE_LIBRE = -2;

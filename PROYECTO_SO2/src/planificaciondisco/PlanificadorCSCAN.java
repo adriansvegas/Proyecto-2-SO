@@ -10,6 +10,7 @@ import modelo.ProcesoIO;
  *
  * @author Edgar
  */
+/** Algoritmo Circular SCAN: Barre siempre en una sola dirección (ascendente). */
 public class PlanificadorCSCAN implements PlanificadorDisco {
     @Override
     public ProcesoIO seleccionarSiguiente(Cola<ProcesoIO> cola, int cabezalActual) {
@@ -17,6 +18,7 @@ public class PlanificadorCSCAN implements PlanificadorDisco {
         Object[] procesos = cola.toArray();
         ProcesoIO mejor = null;
         int mejorDistancia = Integer.MAX_VALUE;
+        // Buscar el siguiente mayor
         for (Object obj : procesos) {
             ProcesoIO p = (ProcesoIO) obj;
             int pos = p.getCilindroPeticion();
@@ -25,6 +27,7 @@ public class PlanificadorCSCAN implements PlanificadorDisco {
                 if (dist < mejorDistancia) { mejorDistancia = dist; mejor = p; }
             }
         }
+        // Si no hay mayores, volver al principio (Circular)
         if (mejor == null) {
             int menorPosicion = Integer.MAX_VALUE;
             for (Object obj : procesos) {

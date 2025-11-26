@@ -9,6 +9,7 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
+/** Algoritmo Shortest Seek Time First: Busca el más cercano al cabezal. */
 public class PlanificadorSSTF implements PlanificadorDisco {
     @Override
     public ProcesoIO seleccionarSiguiente(Cola<ProcesoIO> cola, int cabezalActual) {

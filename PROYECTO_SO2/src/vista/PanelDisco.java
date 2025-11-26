@@ -12,6 +12,7 @@ import modelo.Disco;
  *
  * @author Edgar
  */
+/** Panel gráfico que dibuja el estado de los bloques del disco. */
 public class PanelDisco extends JPanel {
     private Disco disco;
     private final int BLOQUE_SIZE = 42;

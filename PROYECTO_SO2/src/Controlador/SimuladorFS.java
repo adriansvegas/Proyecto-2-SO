@@ -15,7 +15,9 @@ import planificaciondisco.*;
  * @author adria
  */
 
-
+/**
+ * Controlador Principal. Orquesta Disco, FAT y Planificación.
+ */
 
 public class SimuladorFS {
     private Disco disco;

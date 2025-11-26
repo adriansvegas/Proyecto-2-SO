@@ -8,6 +8,9 @@ package modelo;
  *
  * @author adria
  */
+/**
+ * Representa una solicitud de E/S (PCB simplificado).
+ */
 public class ProcesoIO {  
     public enum Operacion { CREAR_ARCHIVO, ELIMINAR_ARCHIVO, CREAR_DIR, ELIMINAR_DIR }
     public enum Estado { NUEVO, LISTO, EJECUCION, BLOQUEADO, TERMINADO }
@@ -19,7 +22,7 @@ public class ProcesoIO {
     private String rutaObjetivo;
     private int tamano;
     private Estado estado;
-    private int cilindroPeticion;
+    private int cilindroPeticion; // Posición física deseada
     
     // Variables para simulación de tiempo real
     private int tiempoTotal;

@@ -26,6 +26,14 @@ import java.util.function.Predicate;
 /**
  
  */
+
+/**
+ * Tabla Hash (Hash Table) con encadenamiento para colisiones.
+ * <p>
+ * Estructura clave para la <b>Tabla de Asignación de Archivos (FAT)</b>.
+ * Permite búsquedas de archivos por ruta en tiempo O(1) promedio.
+ * </p>
+ */
 public class Hashmap<K, V> {
 
     private static final int DEFAULT_CAPACITY = 16;

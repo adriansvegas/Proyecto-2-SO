@@ -9,6 +9,10 @@ package modelo;
  *
  * @author Edgar
  */
+/**
+ * Representación del Disco Duro Virtual (SD).
+ * Gestiona un arreglo fijo de bloques.
+ */
 public class Disco {
     public static final int CANTIDAD_BLOQUES = 100; 
     private Bloque[] bloques;
@@ -19,7 +23,10 @@ public class Disco {
             bloques[i] = new Bloque();
         }
     }
-
+/**
+ * Representación del Disco Duro Virtual (SD).
+ * Gestiona un arreglo fijo de bloques.
+ */
     public Bloque getBloque(int indice) {
         if (indice >= 0 && indice < CANTIDAD_BLOQUES) {
             return bloques[indice];

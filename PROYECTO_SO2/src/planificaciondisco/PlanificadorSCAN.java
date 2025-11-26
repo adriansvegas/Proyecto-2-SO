@@ -9,6 +9,7 @@ import modelo.ProcesoIO;
  *
  * @author adria
  */
+/** Algoritmo del Elevador (SCAN): Barre en una dirección hasta el final. */
 public class PlanificadorSCAN implements PlanificadorDisco {
     private boolean subiendo = true;
     @Override
@@ -17,6 +18,7 @@ public class PlanificadorSCAN implements PlanificadorDisco {
         Object[] procesos = cola.toArray();
         ProcesoIO mejor = null;
         int mejorDistancia = Integer.MAX_VALUE;
+        // Buscar en la dirección actual
         for (Object obj : procesos) {
             ProcesoIO p = (ProcesoIO) obj;
             int pos = p.getCilindroPeticion();
@@ -28,6 +30,7 @@ public class PlanificadorSCAN implements PlanificadorDisco {
                 if (dist < mejorDistancia) { mejorDistancia = dist; mejor = p; }
             }
         }
+        // Si no hay nada, invertir dirección
         if (mejor == null) {
             subiendo = !subiendo;
             return seleccionarSiguiente(cola, cabezalActual);

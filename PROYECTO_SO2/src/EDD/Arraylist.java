@@ -3,7 +3,13 @@ package EDD;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
+/**
+ * Arreglo Dinámico Redimensionable.
+ * <p>
+ * Implementación propia similar a {@code java.util.ArrayList}.
+ * Se utiliza para gestionar las listas de hijos en los Directorios.
+ * </p>
+ */
 public class Arraylist<E> implements Iterable<E> {
     private Object[] elements;
     private int size;
