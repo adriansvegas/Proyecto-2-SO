@@ -1,4 +1,5 @@
 package vista;
+
 import Controlador.SimuladorFS;
 import EDD.Arraylist;
 import EDD.Cola;
@@ -23,16 +24,19 @@ import java.awt.event.ActionListener;
  */
 public class VentanaPrincipal extends JFrame {
     private SimuladorFS simulador;
+    
     private JTree treeDirectorios;
     private PanelDisco panelDisco;
     private JTable tablaFAT;
     private JTable tablaProcesos; 
     private DefaultTableModel modeloProcesos;
     private JTextArea logArea;
+    
     private JComboBox<String> cmbAlgoritmo;
     private JComboBox<ModoUsuario> cmbModo;
     private JButton btnCarga, btnCrearArch, btnCrearDir, btnRenombrar, btnEliminar, btnGuardar;
-    private JButton btnIniciarPausar, btnCambiarPass;
+    private JButton btnIniciarPausar;
+    private JButton btnCambiarPass;
     
     private Timer timerEjecucion;
     private final int VELOCIDAD_EJECUCION = 1000; 
@@ -74,12 +78,14 @@ public class VentanaPrincipal extends JFrame {
         
         cmbModo = new JComboBox<>(ModoUsuario.values());
         estilizarCombo(cmbModo);
+        
         cmbModo.addActionListener(e -> {
             ModoUsuario seleccion = (ModoUsuario) cmbModo.getSelectedItem();
+            
             if (seleccion == ModoUsuario.ADMINISTRADOR) {
                 if (!simulador.isPasswordSet()) {
                     JPasswordField pf = new JPasswordField();
-                    int ok = JOptionPane.showConfirmDialog(this, pf, "🆕 CREAR CONTRASEÑA ADMIN:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                    int ok = JOptionPane.showConfirmDialog(this, pf, "🆕 CONFIGURACIÓN INICIAL\nCree una contraseña para el Administrador:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
                     if (ok == JOptionPane.OK_OPTION) {
                         String newPass = new String(pf.getPassword());
                         if (!newPass.trim().isEmpty()) {
@@ -88,6 +94,7 @@ public class VentanaPrincipal extends JFrame {
                             log("✅ Admin configurado.");
                             aplicarPermisosPorRol();
                         } else {
+                            JOptionPane.showMessageDialog(this, "La contraseña no puede estar vacía.");
                             cmbModo.setSelectedItem(ModoUsuario.USUARIO);
                         }
                     } else cmbModo.setSelectedItem(ModoUsuario.USUARIO);
@@ -99,6 +106,7 @@ public class VentanaPrincipal extends JFrame {
                         log("✅ Acceso ADMIN.");
                         aplicarPermisosPorRol();
                     } else {
+                        JOptionPane.showMessageDialog(this, "⛔ Contraseña Incorrecta", "Error", JOptionPane.ERROR_MESSAGE);
                         cmbModo.setSelectedItem(ModoUsuario.USUARIO);
                     }
                 }
@@ -116,7 +124,7 @@ public class VentanaPrincipal extends JFrame {
         estilizarCombo(cmbAlgoritmo);
         cmbAlgoritmo.addActionListener(e -> cambiarAlgoritmo());
 
-        JButton btnAyuda = crearBoton("ℹ Ayuda Roles", e -> mostrarAyudaRoles());
+        JButton btnAyuda = crearBoton("ℹ Información Roles", e -> mostrarAyudaRoles());
         btnAyuda.setBackground(new Color(100, 100, 100));
 
         pnlCtrls.add(crearLabel("Modo Usuario:")); pnlCtrls.add(cmbModo);
@@ -127,7 +135,7 @@ public class VentanaPrincipal extends JFrame {
         treeDirectorios = new JTree();
         estilizarArbol(treeDirectorios);
         JScrollPane scrollTree = new JScrollPane(treeDirectorios);
-        decorarScroll(scrollTree, "Explorador");
+        decorarScroll(scrollTree, "Explorador (Seleccione Destino)");
 
         sidebar.add(pnlCtrls, BorderLayout.NORTH);
         sidebar.add(scrollTree, BorderLayout.CENTER);
@@ -252,20 +260,23 @@ public class VentanaPrincipal extends JFrame {
     private String validarDestinoSeleccionado() {
         TreePath path = treeDirectorios.getSelectionPath();
         if (path == null) {
-            JOptionPane.showMessageDialog(this, "⚠️ ERROR: Seleccione una carpeta destino.", "Validación", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "⚠️ ERROR: Debe seleccionar una carpeta destino.", "Validación", JOptionPane.WARNING_MESSAGE);
             return null;
         }
         return obtenerRutaSeleccionada();
     }
 
     private void mostrarAyudaRoles() {
-        JOptionPane.showMessageDialog(this, "ADMIN: Control total.\nUSUARIO: Solo lectura y Carga Masiva.", "Roles", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, 
+            "ADMIN: Control total + Gestión de Clave.\n" +
+            "USUARIO: Solo lectura y Carga Masiva.", 
+            "Roles", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void generarCarga() {
         String ruta = obtenerRutaSeleccionada();
         simulador.generarCargaAleatoria(ruta);
-        log("Carga en: " + ruta);
+        log("Carga generada en: " + ruta);
         actualizarVista();
     }
     
@@ -273,12 +284,23 @@ public class VentanaPrincipal extends JFrame {
         JPasswordField pfOld = new JPasswordField();
         int action = JOptionPane.showConfirmDialog(this, pfOld, "Contraseña ACTUAL:", JOptionPane.OK_CANCEL_OPTION);
         if (action != JOptionPane.OK_OPTION) return;
-        if (!simulador.loginAdmin(new String(pfOld.getPassword()))) return;
+        
+        String oldPass = new String(pfOld.getPassword());
+        if (!simulador.loginAdmin(oldPass)) {
+            JOptionPane.showMessageDialog(this, "Clave incorrecta.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
         JPasswordField pfNew = new JPasswordField();
         int action2 = JOptionPane.showConfirmDialog(this, pfNew, "NUEVA contraseña:", JOptionPane.OK_CANCEL_OPTION);
         if (action2 != JOptionPane.OK_OPTION) return;
-        if (simulador.cambiarPasswordAdmin(new String(pfOld.getPassword()), new String(pfNew.getPassword()))) {
-            log("Seguridad: Clave actualizada.");
+        
+        String newPass = new String(pfNew.getPassword());
+        if (newPass.trim().isEmpty()) return;
+        
+        if (simulador.cambiarPasswordAdmin(oldPass, newPass)) {
+            JOptionPane.showMessageDialog(this, "✅ Clave actualizada.");
+            log("Seguridad: Clave de Admin cambiada.");
         }
     }
 
@@ -301,8 +323,9 @@ public class VentanaPrincipal extends JFrame {
 
     private void ejecutarPasoAutomatico() {
         ProcesoIO p = simulador.ejecutarCiclo();
-        if (p != null) actualizarVista();
-        else {
+        if (p != null) {
+            actualizarVista();
+        } else {
             if (ejecutando) toggleSimulacion(); 
             log("Cola vacía.");
         }
@@ -312,10 +335,13 @@ public class VentanaPrincipal extends JFrame {
         DefaultMutableTreeNode root = construirArbol(simulador.getRaiz());
         treeDirectorios.setModel(new DefaultTreeModel(root));
         for(int i=0;i<treeDirectorios.getRowCount();i++) treeDirectorios.expandRow(i);
+
         panelDisco.repaint();
+
         DefaultTableModel modelFAT = (DefaultTableModel) tablaFAT.getModel();
         modelFAT.setRowCount(0);
         llenarTablaFAT(simulador.getRaiz(), "", modelFAT);
+
         modeloProcesos.setRowCount(0);
         Arraylist<ProcesoIO> historial = simulador.getProcesosHistoricos();
         if (historial != null) {
@@ -329,21 +355,61 @@ public class VentanaPrincipal extends JFrame {
         }
     }
 
+    // --- CORRECCIÓN: MÉTODO CREAR ARCHIVO RESTAURADO ---
     private void crearArchivo() { 
         String ruta = validarDestinoSeleccionado();
         if (ruta == null) return;
+        
         String n = JOptionPane.showInputDialog("Nombre Archivo:");
-        if(n != null && !n.trim().isEmpty()) { 
-            simulador.agregarProceso("admin", ProcesoIO.Operacion.CREAR_ARCHIVO, ruta+"/"+n, 2, 3);
+        if(n == null || n.trim().isEmpty()) return;
+        
+        if (n.contains("/")) {
+            JOptionPane.showMessageDialog(this, "Nombre inválido (contiene '/')", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        if (simulador.existeElemento(ruta + "/" + n)) {
+            JOptionPane.showMessageDialog(this, "Ya existe un archivo o carpeta con ese nombre.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // --- AQUÍ ESTÁ LA LÍNEA RESTAURADA ---
+        String tamStr = JOptionPane.showInputDialog("Tamaño (Bloques):");
+        if (tamStr == null) return;
+        
+        try {
+            int tam = Integer.parseInt(tamStr);
+            if (tam <= 0) {
+                JOptionPane.showMessageDialog(this, "Tamaño debe ser > 0");
+                return;
+            }
+            
+            if (simulador.getDisco().contarBloquesLibres() < tam) {
+                JOptionPane.showMessageDialog(this, "Disco Lleno o espacio insuficiente.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            // Duración fija de 3s para manuales
+            simulador.agregarProceso("admin", ProcesoIO.Operacion.CREAR_ARCHIVO, ruta+"/"+n, tam, 3);
             actualizarVista();
+        } catch(NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Número inválido.");
         }
     }
     
     private void crearCarpeta() {
         String ruta = validarDestinoSeleccionado();
         if (ruta == null) return;
+        
         String n = JOptionPane.showInputDialog("Nombre Carpeta:");
         if(n != null && !n.trim().isEmpty()) {
+            if (n.contains("/")) {
+                JOptionPane.showMessageDialog(this, "Nombre inválido (contiene '/')");
+                return;
+            }
+            if (simulador.existeElemento(ruta + "/" + n)) {
+                JOptionPane.showMessageDialog(this, "Ya existe ese nombre.");
+                return;
+            }
             simulador.agregarProceso("admin", ProcesoIO.Operacion.CREAR_DIR, ruta+"/"+n, 0, 3);
             actualizarVista();
         }
@@ -352,13 +418,29 @@ public class VentanaPrincipal extends JFrame {
     private void renombrar() { 
         String ruta = validarDestinoSeleccionado();
         if (ruta == null) return;
+        if (ruta.equals("root")) return;
+        
         String n = JOptionPane.showInputDialog("Nuevo Nombre:");
-        if(n != null && !n.trim().isEmpty()) { simulador.renombrarArchivo(ruta, n); actualizarVista(); }
+        if(n != null && !n.trim().isEmpty()) { 
+            if (n.contains("/")) {
+                JOptionPane.showMessageDialog(this, "Nombre inválido.");
+                return;
+            }
+            String padre = ruta.substring(0, ruta.lastIndexOf("/"));
+            if (simulador.existeElemento(padre + "/" + n)) {
+                JOptionPane.showMessageDialog(this, "Nombre ya en uso en este directorio.");
+                return;
+            }
+            simulador.renombrarArchivo(ruta, n); 
+            actualizarVista(); 
+        }
     }
     
     private void borrar() { 
         String ruta = validarDestinoSeleccionado();
         if (ruta == null) return;
+        if (ruta.equals("root")) { JOptionPane.showMessageDialog(this, "No se puede eliminar la raíz."); return; }
+        
         int confirm = JOptionPane.showConfirmDialog(this, "¿Eliminar: " + ruta + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             simulador.agregarProceso("admin", ProcesoIO.Operacion.ELIMINAR_ARCHIVO, ruta, 0, 3);

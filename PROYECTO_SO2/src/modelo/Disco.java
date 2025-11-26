@@ -10,7 +10,7 @@ package modelo;
  * @author Edgar
  */
 public class Disco {
-    public static final int CANTIDAD_BLOQUES = 100; // Tamaño definido del disco [cite: 34]
+    public static final int CANTIDAD_BLOQUES = 100; 
     private Bloque[] bloques;
 
     public Disco() {
@@ -27,26 +27,17 @@ public class Disco {
         return null;
     }
 
-    public int getCantidadBloques() {
-        return CANTIDAD_BLOQUES;
-    }
+    public int getCantidadBloques() { return CANTIDAD_BLOQUES; }
 
-    /**
-     * Busca el primer bloque libre disponible (estrategia simple).
-     * @return Índice del bloque o -1 si está lleno.
-     */
     public int buscarBloqueLibre() {
         for (int i = 0; i < CANTIDAD_BLOQUES; i++) {
             if (!bloques[i].estaOcupado()) {
-                return i;
+                return i; 
             }
         }
-        return -1; // Disco lleno
+        return -1; 
     }
 
-    /**
-     * Cuenta cuántos bloques libres quedan.
-     */
     public int contarBloquesLibres() {
         int libres = 0;
         for (Bloque b : bloques) {

@@ -63,7 +63,7 @@ public class Hashmap<K, V> {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Entry<?, ?> entry = (Entry<?, ?>) o;
-            return key.equals(entry.key); // Compare keys only for map logic
+            return key.equals(entry.key); 
         }
 
         @Override
@@ -73,27 +73,25 @@ public class Hashmap<K, V> {
     }
 
     private int getBucketIndex(K key) {
-        // Handle potential negative hash codes correctly
+        
         int hashCode = key.hashCode();
-        // Use Math.abs only if the modulo result could be negative (Java's % can return negative)
+        
         int index = hashCode % buckets.length;
         return index < 0 ? index + buckets.length : index;
-        // Or simpler, ensuring non-negative before modulo:
-        // return (hashCode & 0x7FFFFFFF) % buckets.length;
+        
     }
 
 
     public synchronized V put(K key, V value) {
         if (key == null) throw new NullPointerException("Key cannot be null");
-        if (value == null) throw new NullPointerException("Value cannot be null"); // Common map behavior
-
-        if ((float) (size + 1) / buckets.length >= loadFactor) { // Check before adding
+        if (value == null) throw new NullPointerException("Value cannot be null"); 
+        if ((float) (size + 1) / buckets.length >= loadFactor) { 
             resize();
         }
 
         int bucketIndex = getBucketIndex(key);
         LinkedList<Entry<K, V>> bucket = buckets[bucketIndex];
-        if (bucket == null) { // Should not happen with constructor, but safe check
+        if (bucket == null) { 
              bucket = new LinkedList<>();
              buckets[bucketIndex] = bucket;
         }
@@ -116,7 +114,7 @@ public class Hashmap<K, V> {
          if (key == null) return null;
          int bucketIndex = getBucketIndex(key);
          LinkedList<Entry<K, V>> bucket = buckets[bucketIndex];
-         if (bucket == null) return null; // Bucket might not exist if capacity is 0 or error
+         if (bucket == null) return null; 
          for (Entry<K, V> entry : bucket) {
              if (entry.key.equals(key)) {
                  return entry.value;
@@ -131,13 +129,13 @@ public class Hashmap<K, V> {
         LinkedList<Entry<K, V>> bucket = buckets[bucketIndex];
         if (bucket == null) return null;
 
-        // --- INICIO CORRECCIÓN: Usar java.util.Iterator ---
+       
         Iterator<Entry<K, V>> iterator = bucket.iterator();
-        // --- FIN CORRECCIÓN ---
+        
         while (iterator.hasNext()) {
             Entry<K, V> entry = iterator.next();
             if (entry.key.equals(key)) {
-                iterator.remove(); // Use iterator's remove method
+                iterator.remove(); 
                 size--;
                 return entry.value;
             }
@@ -161,15 +159,9 @@ public class Hashmap<K, V> {
                  buckets[i].clear();
              }
          }
-         // Reset size
+         
         size = 0;
-         // Optionally, resize back to default capacity if desired
-         // @SuppressWarnings("unchecked")
-         // LinkedList<Entry<K, V>>[] newBuckets = new LinkedList[DEFAULT_CAPACITY];
-         // for (int i = 0; i < DEFAULT_CAPACITY; i++) {
-         //     newBuckets[i] = new LinkedList<>();
-         // }
-         // buckets = newBuckets;
+         
     }
 
 
@@ -186,7 +178,7 @@ public class Hashmap<K, V> {
         return false;
     }
 
-    // --- Métodos para iterar (simplificados) ---
+    
 
     public synchronized Set<K> keySet() {
         Set<K> keys = new HashSet<>();
@@ -201,7 +193,7 @@ public class Hashmap<K, V> {
     }
 
     public synchronized Collection<V> values() {
-        List<V> values = new ArrayList<>(); // Use standard ArrayList for return type
+        List<V> values = new ArrayList<>(); 
         for (LinkedList<Entry<K, V>> bucket : buckets) {
              if (bucket != null) {
                 for (Entry<K, V> entry : bucket) {
@@ -227,7 +219,7 @@ public class Hashmap<K, V> {
     @SuppressWarnings("unchecked")
     private synchronized void resize() {
         int oldCapacity = buckets.length;
-        // Prevent excessive resizing if capacity is huge, though unlikely for this project
+        
         if (oldCapacity >= Integer.MAX_VALUE / 2) {
              System.err.println("WARN: Max map capacity reached, not resizing.");
              return;
@@ -239,67 +231,65 @@ public class Hashmap<K, V> {
         for (int i = 0; i < newCapacity; i++) {
             buckets[i] = new LinkedList<>();
         }
-        size = 0; // Reset size before rehashing
+        size = 0; 
 
         for (LinkedList<Entry<K, V>> bucket : oldBuckets) {
              if (bucket != null) {
                 for (Entry<K, V> entry : bucket) {
-                    put(entry.key, entry.value); // Rehash using put
+                    put(entry.key, entry.value); 
                 }
              }
         }
-         // Optional logging:
-         // System.out.println("Hashmap resized to capacity: " + newCapacity);
+         
     }
 
-    // --- Iterator needed for removeIf ---
-    // Using java.util.Iterator internally now
+    
     public synchronized Iterator<Entry<K, V>> entryIterator() {
         return new EntryIterator();
     }
 
-    // --- INICIO CORRECCIÓN: Implementar java.util.Iterator ---
+    
     public class EntryIterator implements Iterator<Entry<K, V>> {
-    // --- FIN CORRECCIÓN ---
+    
         private int currentBucketIndex;
         private Iterator<Entry<K, V>> currentBucketIterator;
         private Entry<K, V> lastReturned;
 
         EntryIterator() {
             currentBucketIndex = -1;
-            advanceToNextBucket(); // Initialize iterator
+            advanceToNextBucket(); 
         }
 
-        // Helper to move to the next non-empty bucket's iterator
+        
         private void advanceToNextBucket() {
-            lastReturned = null; // Cannot remove until next() is called
+            lastReturned = null; 
             if (currentBucketIterator != null && currentBucketIterator.hasNext()) {
-                return; // Current iterator still has elements
+                return; 
             }
             currentBucketIndex++;
             while (currentBucketIndex < buckets.length) {
                  if (buckets[currentBucketIndex] != null && !buckets[currentBucketIndex].isEmpty()) {
                     currentBucketIterator = buckets[currentBucketIndex].iterator();
-                    return; // Found next iterator
+                    return; 
                  }
                 currentBucketIndex++;
             }
-            currentBucketIterator = null; // No more elements
+            currentBucketIterator = null; 
         }
 
 
         @Override
         public boolean hasNext() {
-            // Ensure we are positioned correctly if the current iterator was exhausted
+            
             if (currentBucketIterator == null || !currentBucketIterator.hasNext()) {
-                 advanceToNextBucket(); // Try to find the next element
+                 advanceToNextBucket(); 
              }
              return currentBucketIterator != null && currentBucketIterator.hasNext();
         }
 
         @Override
         public Entry<K, V> next() {
-            if (!hasNext()) { // hasNext() also advances the iterator if needed
+            if (!hasNext()) { 
                 throw new NoSuchElementException();
             }
             lastReturned = currentBucketIterator.next();
@@ -311,12 +301,7 @@ public class Hashmap<K, V> {
              if (lastReturned == null) {
                  throw new IllegalStateException("next() must be called before remove(), or remove() called twice");
              }
-             // We need to remove from the underlying LinkedList iterator that produced lastReturned.
-             // The standard LinkedList iterator supports remove().
-             // However, the 'currentBucketIterator' might have advanced if next() exhausted a bucket.
-             // A fully robust implementation is complex. This simplified version assumes
-             // remove() is called immediately after next() and relies on the LinkedList iterator's state.
-             // We'll find the *original* bucket iterator again - less efficient but safer for this structure.
+            
 
              int bucketIdx = getBucketIndex(lastReturned.key);
              LinkedList<Entry<K,V>> bucket = buckets[bucketIdx];
@@ -324,38 +309,35 @@ public class Hashmap<K, V> {
                  Iterator<Entry<K,V>> it = bucket.iterator();
                  while (it.hasNext()) {
                      Entry<K,V> current = it.next();
-                     // Use == for comparison as lastReturned is the *exact* object from the list
+                     
                      if (current == lastReturned) {
                          it.remove();
                          size--;
-                         lastReturned = null; // Prevent double remove
+                         lastReturned = null; 
                          return;
                      }
                  }
              }
-             // If we reach here, something went wrong (e.g., concurrent modification not fully handled)
+             
              throw new IllegalStateException("Could not remove element, possibly due to concurrent modification or internal error.");
         }
     }
 
-    // Simplified removeIf implementation using the corrected iterator
+    
     public synchronized boolean removeIf(Predicate<Map.Entry<K, V>> filter) {
         boolean removed = false;
-        Iterator<Entry<K, V>> it = entryIterator(); // Uses the internal EntryIterator
+        Iterator<Entry<K, V>> it = entryIterator(); 
         while (it.hasNext()) {
              Entry<K, V> internalEntry = it.next();
-             // Create a standard Map.Entry for the predicate, as the predicate expects it
+             
              Map.Entry<K, V> mapEntry = new AbstractMap.SimpleEntry<>(internalEntry.key, internalEntry.value);
              if (filter.test(mapEntry)) {
-                 it.remove(); // Use iterator's remove
+                 it.remove(); 
                  removed = true;
              }
          }
          return removed;
     }
 
-     // --- INICIO CORRECCIÓN: Remover interfaz interna ---
-     // Remove the custom Iterator interface definition entirely
-     // interface Iterator<E> { ... } // <<-- DELETE THIS WHOLE INTERFACE DEFINITION
-     // --- FIN CORRECCIÓN ---
+     
 }

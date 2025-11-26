@@ -25,7 +25,7 @@ public class Bloque {
 
     public void ocupar(int idArchivo, int siguiente) {
         this.ocupado = true;
-        this.idArchivo = idArchivo;
+        this.idArchivo = idArchivo; 
         this.siguienteBloque = siguiente;
     }
 

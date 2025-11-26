@@ -17,19 +17,26 @@ import javax.swing.table.DefaultTableCellRenderer;
 
 
 
+
+
 public class RenderizadorEstado extends DefaultTableCellRenderer {
     @Override
-    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+    public Component getTableCellRendererComponent(JTable table, Object value, 
+            boolean isSelected, boolean hasFocus, int row, int column) {
         super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+        
         String estado = (value != null) ? value.toString() : "";
         this.setFont(new Font("Segoe UI", Font.BOLD, 12));
         this.setHorizontalAlignment(JLabel.CENTER);
+        
         if (estado.equals("EJECUCION")) this.setForeground(new Color(0, 230, 118));
         else if (estado.equals("LISTO")) this.setForeground(new Color(255, 193, 7));
         else if (estado.equals("TERMINADO")) this.setForeground(Color.GRAY);
         else this.setForeground(Color.WHITE);
+        
         if (!isSelected) this.setBackground(row % 2 == 0 ? new Color(35, 35, 35) : new Color(45, 45, 45));
         else this.setBackground(new Color(60, 60, 60));
+        
         return this;
     }
 }

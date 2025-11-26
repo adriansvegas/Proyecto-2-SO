@@ -3,10 +3,10 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
  */
 package proyecto_so2;
+
 import Controlador.SimuladorFS;
 import vista.VentanaPrincipal;
 import javax.swing.SwingUtilities;
-// import so_operativos.Logger;
 /**
  *
  * @author Edgar
@@ -15,14 +15,11 @@ import javax.swing.SwingUtilities;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Iniciando Kernel...");
+       // Opcional: Inicializar logger
+        // Logger.init(); 
         
-        try {
-            javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        System.out.println("Iniciando Sistema de Archivos...");
+        
         SwingUtilities.invokeLater(() -> {
             SimuladorFS modelo = new SimuladorFS();
             VentanaPrincipal vista = new VentanaPrincipal(modelo);

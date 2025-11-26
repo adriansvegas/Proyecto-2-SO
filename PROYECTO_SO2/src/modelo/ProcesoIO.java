@@ -8,7 +8,7 @@ package modelo;
  *
  * @author adria
  */
-public class ProcesoIO {
+public class ProcesoIO {  
     public enum Operacion { CREAR_ARCHIVO, ELIMINAR_ARCHIVO, CREAR_DIR, ELIMINAR_DIR }
     public enum Estado { NUEVO, LISTO, EJECUCION, BLOQUEADO, TERMINADO }
 
@@ -21,6 +21,7 @@ public class ProcesoIO {
     private Estado estado;
     private int cilindroPeticion;
     
+    // Variables para simulación de tiempo real
     private int tiempoTotal;
     private int tiempoRestante;
 
@@ -37,11 +38,16 @@ public class ProcesoIO {
     }
 
     public void ejecutarPaso() {
-        if (tiempoRestante > 0) tiempoRestante--;
+        if (tiempoRestante > 0) {
+            tiempoRestante--;
+        }
     }
 
-    public boolean esTerminado() { return tiempoRestante <= 0; }
+    public boolean esTerminado() {
+        return tiempoRestante <= 0;
+    }
 
+    // Getters
     public int getId() { return id; }
     public String getUsuario() { return usuario; }
     public Operacion getOperacion() { return operacion; }
